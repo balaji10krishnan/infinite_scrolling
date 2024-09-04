@@ -10,8 +10,6 @@ const useHttp = () => {
     setIsError(false);
     let data;
     try {
-      console.log(req);
-      console.log(req.url);
       const res = await fetch(req.url, req);
       data = await res.json();
       if (res.ok) {

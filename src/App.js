@@ -1,12 +1,26 @@
 import logo from "./logo.svg";
 import "./App.css";
 import useHttp from "./api/useHttp";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function App() {
   const { sendRequest: getRepoReq, isLoading: isRepoGeting } = useHttp();
-  const [repoList, setRepo] = useState([]);
+  const [repoList, setRepoList] = useState([]);
   const [page, setPage] = useState(1);
+  const observer = useRef(null);
+  const lastElementObserve = useCallback(
+    (node) => {
+      if (isRepoGeting) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((element) => {
+        if (element[0].isIntersecting) {
+          setPage((pre) => pre + 1);
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [isRepoGeting]
+  );
   const handleGetRepo = () => {
     getRepoReq(
       {
@@ -14,7 +28,7 @@ function App() {
         method: "GET",
       },
       (data) => {
-        console.log("data", data);
+        setRepoList((pre) => [...pre, ...data]);
       },
       (err, data) => {
         console.log("errdata", data);
@@ -23,24 +37,16 @@ function App() {
   };
   useEffect(() => {
     handleGetRepo();
-  }, []);
+  }, [page]);
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      {repoList.map((repo, i) => (
+        <div ref={repoList.length == i + 1 ? lastElementObserve : null}>
+          <img src={repo.user.avatar_url} />
+        </div>
+      ))}
+      {isRepoGeting && <p>Loading</p>}
     </div>
   );
 }
